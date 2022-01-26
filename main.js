@@ -8,7 +8,7 @@
  *  {
  *      "common": {
  *          "name":         "bacnet",                // name has to be set and has to be equal to adapters folder name and main file name excluding extension
- *          "version":      "0.0.0",                    // use "Semantic Versioning"! see http://semver.org/
+ *          "version":      "0.0.2",                    // use "Semantic Versioning"! see http://semver.org/
  *          "title":        "Roth Bacnet Adapter",// Adapter title shown in User Interfaces
  *          "authors":  [                               // Array of authord
  *              "name <fabian.siebold@gmail.com>"
@@ -28,7 +28,7 @@
  */
 
 /* jshint -W097 */// jshint strict:false
-/*jslint node: true */
+/*jslint node: true */ 
 'use strict';
 var exec = require('child_process').exec;
 
@@ -94,72 +94,6 @@ adapter.on('stateChange', function (id, state) {
 		{
 			adapter.log.error('object' + id + ' is not writable');
 		}
-		
-		
-/*		
-		let value = state.val;
-		let devAddrDevicelId =  id.split(".").slice(0,-1).join(".") + ".DevAddress";
-		let dev = id.split(".").slice(2,3);
-		let ru = id.split(".").slice(3,4);
-		let valType = id.split(".").slice(4);
-		let devAddr;
-
-		// Suche das Device im Json-Object
-		for (var iDevJson = 0; iDevJson < jsonObjects.NumberOfDevices ; iDevJson++)
-		{
-			// Setze das JSON-Device Objekt
-			var jsonDev = jsonObjects.Devices[iDevJson];
-
-			if (jsonDev.Id == dev) 
-			{
-				// Suche die RU im Json-Device-Object
-				for (var iRUJson = 0; iRUJson < jsonDev.NumberOfRoomUnits ; iRUJson++)
-				{
-					// Setze das JSON-Device Objekt
-					var jsonRU = jsonDev.RoomUnits[iRUJson];
-
-					if (jsonRU.Id == ru) 
-					{
-						devAddr = jsonRU.DevAddress;
-					}
-					break;
-				}
-				break;
-			}
-		}
-		
-        adapter.log.info('Value changed by user! (ID:' + id + "  VAL:" + state.val +  "  Addr:" + devAddr + ")");
-
-		// Was wurde geaendert?
-		if (valType == "SollTemp")
-		{
-			// Ist der Wert ausserhalb des gütligen Bereich (5-30)?
-			value = Math.min(Math.max(5,value), 30);
-
-			// Der Wert wird in Hunderstelgrad geschrieben
-			value = (Math.round(value * 10) * 10);
-		}
-		else if (valType == "OPMode")
-		{
-			// Ist der Wert ausserhalb des gütligen Bereich (0-2)?
-			value = Math.min(Math.max(0,value), 2);
-		}
-		else if (valType == "WeekProg")
-		{
-			// Ist der Wert ausserhalb des gütligen Bereich (0-3)?
-			value = Math.min(Math.max(0,value), 3);
-		}
-		else 
-		{
-			adapter.log.error('Value \'' + valType + '\' not writable');
-			return;
-		}
-
-		adapter.log.info("Value changed to " + value + " Addr " + devAddr + '.' + valType);
-		writeValue(devAddr + '.' + valType, value); 
-		
-		getData();
-		*/
 	}
 });
 
@@ -179,7 +113,7 @@ adapter.on('message', function (obj) {
 // is called when databases are connected and adapter received configuration.
 // start here!
 adapter.on('ready', function () {
-    adapter.log.info("ROTH-Bacnet: START ADAPTER data:", adapter.common);
+    adapter.log.info("Bacnet: START ADAPTER data:", adapter.common);
 	adapter.setState("info.connection", {val: false, ack: true});
     main();
 //	getData();
@@ -193,31 +127,7 @@ function main() {
     adapter.log.info('Polling-Intervall: ' + adapter.config.pollingInterval);
 
 	getObjList();
-	/*
-    var devName;
-    var ruName;
-    var propName;
-	let pollingInterval;
 
-    adapter.log.info("ROTH-Bacnet: createElements");
-    for (var dev in devices) {
-        devName = dev;
-        adapter.log.info("ROTH-Bacnet: create Device Id=" + devName);
-        adapter.setObject(devName, devices[dev]);
-
-        for (var ru in devices[dev].roomUnits) {
-            ruName = devName + "." + ru;
-            adapter.log.info("ROTH-Bacnet: create RoomUnit Id=" + ruName);
-            adapter.setObject(ruName, devices[dev].roomUnits[ru]);
-
-            for (var prop in deviceProperty) {
-                propName = ruName + "." + prop;
-//                console.log("ROTH-Bacnet: create Property Id=" + propName);
-                adapter.setObject(propName, deviceProperty[prop]);
-            }
-        }
-    }
-*/    
 	if (!adapter.config.pollingInterval)
 	{
         adapter.log.warn("adapter.config.pollingInterval not set");
@@ -251,6 +161,118 @@ function main() {
 
 }
 
+if(typeof String.prototype.replaceAll === "undefined") {
+    String.prototype.replaceAll = function(match, replace) {
+       return this.replace(new RegExp(match, 'g'), () => replace);
+    }
+}
+
+// convert the bacrpm string to a json string
+function bacstr2Json(bacStr)
+{
+//    adapter.log.info("bacstr2Json Input: " + bacStr);
+	// "\r    =>  ",\r
+	// )\r    =>  ",\r
+	// : (    =>  : "
+	// (      =>  "
+	// )      =>  "
+	// {"     =>  ["
+	// }     =>  
+	// add } at the end of string
+	
+	// Search for all "xxx, xxx" and remove the ,
+	bacStr = bacStr.replace(/((description: ")[\u0020A-Za-z0-9_-]+),/g,'$1');
+
+		
+	bacStr = bacStr.replaceAll(", ",', "instance": ');
+	bacStr = bacStr.replace(/["][\r\n]/g,'", ');
+	bacStr = bacStr.replace(/[)][\r\n]/g,'}, ');
+	bacStr = bacStr.replace(/[:] [(]/g,':{"object_type":');
+	bacStr = bacStr.replace(/[(]/g,'{"object_type":');
+	bacStr = bacStr.replace(/[)]/g,'}');
+	bacStr = bacStr.replace(/[:] [{]/g,': [');
+	bacStr = bacStr.replace(/[}][}]/g,'}]');
+
+	bacStr = bacStr.replaceAll('object-name',   '"object_name"');
+	bacStr = bacStr.replaceAll('description',   '"description"');
+	bacStr = bacStr.replaceAll('object-identifier','"object_identifier"');
+
+	bacStr = bacStr.replace(/(present-value: )[A-Za-z0-9,_-]+/g, '$&,');
+	bacStr = bacStr.replace(/(present-value: )[A-Za-z0-9_-]+/g, '$&,');
+	bacStr = bacStr.replace(/(low-limit: )[A-Za-z0-9,_-]+/g, '$&,');
+	bacStr = bacStr.replace(/(low-limit: )[A-Za-z0-9_-]+/g, '$&,');
+	bacStr = bacStr.replace(/(high-limit: )[A-Za-z0-9,_-]+/g, '$&,');
+	bacStr = bacStr.replace(/(high-limit: )[A-Za-z0-9_-]+/g, '$&,'); 
+	bacStr = bacStr.replaceAll(',,', '.');
+	bacStr = bacStr.replaceAll('present-value', '"present_value"');
+	bacStr = bacStr.replaceAll('low-limit',     '"low_limit"');
+	bacStr = bacStr.replaceAll('high-limit',    '"high_limit"');
+
+	bacStr = bacStr.replaceAll('low limit', 'low_limit');
+	bacStr = bacStr.replaceAll('high limit', 'high_limit');
+	bacStr = bacStr.replace(/(event-state: )[\u0020A-Za-z0-9_-]+/g, '$&",');
+	bacStr = bacStr.replaceAll('event-state: ', '"event_state": "');
+	bacStr = bacStr.replaceAll('out-of-service','"out_of_service"');
+	bacStr = bacStr.replaceAll('FALSE','false,');
+	bacStr = bacStr.replaceAll('TRUE','true,');
+	bacStr = bacStr.replaceAll('inactive.','0,');
+	bacStr = bacStr.replaceAll('active.','1,');
+	bacStr = bacStr.replace(/(reliability: )[A-Za-z0-9_-]+/g, '$&",');
+	bacStr = bacStr.replaceAll('reliability: ', '"reliability": "');
+
+	bacStr = bacStr.replace(/[,][\r\n]+[}]/g,'}');
+	bacStr = bacStr.replace(/[.][\r\n]/g,', ');
+	
+	bacStr = bacStr.replaceAll('object-list','"object_list"');
+	
+	bacStr = bacStr.replaceAll('analog-input',  '0');
+	bacStr = bacStr.replaceAll('analog-output', '1');
+	bacStr = bacStr.replaceAll('analog-value',  '2');
+	bacStr = bacStr.replaceAll('binary-input',  '3');
+	bacStr = bacStr.replaceAll('binary-output', '4');
+	bacStr = bacStr.replaceAll('binary-value',  '5');
+	bacStr = bacStr.replaceAll('calendar',  '6');
+	bacStr = bacStr.replaceAll('command',   '7');
+	bacStr = bacStr.replaceAll('device',    '8');
+	bacStr = bacStr.replaceAll('event-enrollment', '9');
+	bacStr = bacStr.replaceAll('file',   '10');
+	bacStr = bacStr.replaceAll('group',  '11');
+	bacStr = bacStr.replaceAll('loop',   '12');
+	bacStr = bacStr.replaceAll('multi-state-input',  '13');
+	bacStr = bacStr.replaceAll('multi-state-output', '14');
+	bacStr = bacStr.replaceAll('notification-class', '15');
+	bacStr = bacStr.replaceAll('program',   '16');
+	bacStr = bacStr.replaceAll('schedule',  '17');
+	bacStr = bacStr.replaceAll('averaging', '18');
+	bacStr = bacStr.replaceAll('multi-state-value',  '19');
+
+	
+	bacStr = bacStr.replace(/[0-9]+ #[0-9]+/g, ',');
+	
+	bacStr = bacStr.replace(/(object-type: )[A-Za-z0-9_-]+/g, '$&');
+	bacStr = bacStr.replace('object-type: ','"object_type": ');
+	//bacStr = bacStr.replace(/(object-type: )[A-Za-z0-9_-]+/g, '$&"');
+	bacStr = bacStr.replaceAll('proprietary ','');
+
+	bacStr =  bacStr.substring(bacStr.indexOf('{')-1);
+
+	bacStr = '{"objects": [' + bacStr + ']}'
+/*
+    adapter.log.info("bacstr2Json Output: " + bacStr);
+    adapter.log.info("bacstr2Json Output more300:  " + bacStr.slice(300));
+    adapter.log.info("bacstr2Json Output more600:  " + bacStr.slice(600));
+    adapter.log.info("bacstr2Json Output more900:  " + bacStr.slice(900));
+    adapter.log.info("bacstr2Json Output more1200: " + bacStr.slice(1200));
+    adapter.log.info("bacstr2Json Output more1500: " + bacStr.slice(1500));
+    adapter.log.info("bacstr2Json Output more1800: " + bacStr.slice(1800));
+    adapter.log.info("bacstr2Json Output more2100: " + bacStr.slice(2100));
+    adapter.log.info("bacstr2Json Output more2400: " + bacStr.slice(2400));
+    adapter.log.info("bacstr2Json Output more2700: " + bacStr.slice(2700));
+    adapter.log.info("bacstr2Json Output more3000: " + bacStr.slice(3000));
+    adapter.log.info("bacstr2Json Output more3300: " + bacStr.slice(3300));
+*/
+	return bacStr;
+}
 
 // Average Load mit uptime auslesen
 function getObjList() 
@@ -272,6 +294,9 @@ function getObjList()
 
 //		adapter.log.info("stdout: " + stdout);
 
+		// Convert string into JSON-Format
+		stdout = bacstr2Json(stdout);
+
         let jsonObjects = JSON.parse(stdout);
 		if (!jsonObjects || (!jsonObjects.objects[0].object_list) || (jsonObjects.objects[0].object_list.length <= 0))
 		{
@@ -280,7 +305,7 @@ function getObjList()
 			return;			
 		}
 		
-		let objPath = jsonObjects.objects[0].object_identifier.instance;
+		let objPath = jsonObjects.objects[0].object_identifier.instance.toString();
 		objList = jsonObjects.objects[0].object_list;
 
 		adapter.setObject(objPath, {
@@ -315,7 +340,7 @@ function getObjList()
 
 function getStaticObjData() 
 {
-	adapter.log.info("getStaticObjData ");
+	adapter.log.info("Read the static data from the bacnet objects");
 
 	// Fuge alle statischen Daten in den Request ein
 	for (var iObj in objList) 
@@ -331,6 +356,9 @@ function getStaticObjData()
 				return;
 			}
 			adapter.setState("info.connection", {val: true, ack: true});
+
+			// Convert string into JSON-Format
+			stdout = bacstr2Json(stdout);
 
 			let jsonObjects = JSON.parse(stdout);
 			if (!jsonObjects || (jsonObjects.objects.length <= 0))
@@ -384,7 +412,7 @@ function getStaticObjData()
 				type: 'state',
 				common: {
 					name: 'object_type',
-					type: 'string',
+					type: 'number',
 					unit: '',
 					role: '',
 					read: true,
@@ -557,7 +585,8 @@ function getDynamicObjData()
 	let timeout = adapter.config.pollingInterval * 2;
 	let readObjList  = __dirname + "/exec/bacrpm " + adapter.config.deviceId + " ";
 
-//	adapter.log.info("getDynamicObjData " + objList);
+	adapter.log.info("Read the dynamic data from the bacnet objects");
+//	adapter.log.info("getDynamicObjData " + JSON.stringify(objList));
 
 	// Sicherheitscheck
 	if (!objList)
@@ -603,7 +632,7 @@ function getDynamicObjData()
 	}
 	
 	{
-//		adapter.log.info("getStaticObjData " + readObjList);
+//		adapter.log.info("getDynamicObjData " + readObjList);
 		
 		exec(readObjList, function(err, stdout, stderr) 
 		{
@@ -615,7 +644,11 @@ function getDynamicObjData()
 			}
 			adapter.setState("info.connection", {val: true, ack: true});
 
-			// adapter.log.info("TESTTESTTESTTEST " + stdout);
+//			adapter.log.info("TESTTESTTESTTEST getDynamicObjData STDOUT:" + stdout);
+			// Convert string into JSON-Format
+			stdout = bacstr2Json(stdout);
+
+//			adapter.log.info("TESTTESTTESTTEST getDynamicObjData JSON:" + stdout);
 			let jsonObjects = JSON.parse(stdout);
 			if (!jsonObjects || (jsonObjects.objects.length <= 0))
 			{
@@ -637,11 +670,11 @@ function getDynamicObjData()
 				let obj = jsonObjects.objects[iObj];
 				let objPath = adapter.config.deviceId + "." + obj.object_identifier.object_type + "." + obj.object_identifier.instance;
 
-//				adapter.log.info("TESTTESTTESTTEST " + objPath + " - " + obj);
+//				adapter.log.info("TESTTESTTESTTEST " + objPath + " - " + JSON.stringify(obj));
 
 //				                adapter.setState(ruName + ".RaumTemp", {val: jsonRU.RaumTemp, ack: true, expire: timeout});
 
-//	adapter.log.info("OOOOOOOOOOOOOOOOOOOOOOOOOO obj.object_identifier.object_type=", obj.object_identifier.object_type);
+//				adapter.log.info("OOOOOOOOOOOOOOOOOOOOOOOOOO obj.object_identifier.object_type=" + obj.object_identifier.object_type);
 				
 				// Datenpunkt Objekt?
 				switch(obj.object_identifier.object_type) 
@@ -649,13 +682,17 @@ function getDynamicObjData()
 					case 0:   //Type: "analog_input"           , Id:   0},
 					case 1:   //Type: "analog_output"          , Id:   1},
 					case 2:   //Type: "analog_value"           , Id:   2},
-					case 3:   //Type: "binary_input"           , Id:   3},
-					case 4:   //Type: "binary_output"          , Id:   4},
-					case 5:   //Type: "binary_value"           , Id:   5},
 					case 13:  //Type: "multistate_input"       , Id:  13},
 					case 14:  //Type: "multistate_output"      , Id:  14},
 					case 19:  //Type: "multistate_value"       , Id:  19},
 						adapter.setState(objPath + ".present_value", { val: Math.round(obj.present_value*100)/100, ack: true, expire: timeout});
+						adapter.setState(objPath + ".event_state",    {val: obj.event_state, ack: true, expire: timeout});
+						adapter.setState(objPath + ".out_of_service",   {val: obj.out_of_service, ack: true, expire: timeout});
+						break; 
+					case 3:   //Type: "binary_input"           , Id:   3},
+					case 4:   //Type: "binary_output"          , Id:   4},
+					case 5:   //Type: "binary_value"           , Id:   5},
+						adapter.setState(objPath + ".present_value", { val: (obj.present_value == 1), ack: true, expire: timeout});
 						adapter.setState(objPath + ".event_state",    {val: obj.event_state, ack: true, expire: timeout});
 						adapter.setState(objPath + ".out_of_service",   {val: obj.out_of_service, ack: true, expire: timeout});
 						break;
@@ -692,35 +729,3 @@ function getDynamicObjData()
 		});
 	}
 }
-
-
-
-/*
-// Schreibe einen neuen Wert zum Bacnet
-// value=`curl -s -k  -X 'GET' -H 'User-Agent: SpiderControl/1.0 (iniNet-Solutions GmbH)'  "http://$ROTHIP/cgi-bin/writeVal.cgi?$1=$2"`
-//                                                                                          http://192.168.10.221/cgi-bin/writeVal.cgi?G0.SollTemp=2000
-function writeValue(addr, value) 
-{
-	var request = new XMLHttpRequest();
-	var url = 'http://' + adapter.config.ipAddress + '/cgi-bin/writeVal.cgi?' + addr + '=' + value;
-
-	request.open("GET", url);
-	request.setRequestHeader('User-Agent','SpiderControl/1.0 (iniNet-Solutions GmbH)');
-	request.addEventListener('load', function(event) {
-	if (request.status >= 200 && request.status < 300) 
-	{
-	  adapter.log.info(request.responseText);
-	}
-	else 
-	{
-	  adapter.log.error(request.statusText, request.responseText);
-	}
-	});
-	request.send();
-	adapter.log.info("url:"+ url);
-}
-
-
-
-
-*/

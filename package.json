@@ -1,41 +1,65 @@
 {
-  "name": "iobroker.bacnet",
-  "version": "0.0.1",
-  "description": "bacnet",
+  "_from": "github:fabsiebold/iobroker.bacnet#60427df938b3483e61c7602dd1ae406080970f69",
+  "_id": "iobroker.bacnet@0.0.1",
+  "_inBundle": false,
+  "_integrity": "",
+  "_location": "/iobroker.bacnet",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "git",
+    "raw": "fabsiebold/iobroker.bacnet#60427df938b3483e61c7602dd1ae406080970f69",
+    "rawSpec": "fabsiebold/iobroker.bacnet#60427df938b3483e61c7602dd1ae406080970f69",
+    "saveSpec": "github:fabsiebold/iobroker.bacnet#60427df938b3483e61c7602dd1ae406080970f69",
+    "fetchSpec": null,
+    "gitCommittish": "60427df938b3483e61c7602dd1ae406080970f69"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "github:fabsiebold/iobroker.bacnet#60427df938b3483e61c7602dd1ae406080970f69",
+  "_spec": "fabsiebold/iobroker.bacnet#60427df938b3483e61c7602dd1ae406080970f69",
+  "_where": "/opt/iobroker",
   "author": {
     "name": "Fabian Siebold",
     "email": "fabian.siebold@gmail.com"
   },
+  "bugs": {
+    "url": "https://github.com/ioBroker/ioBroker.bacnet/issues"
+  },
+  "bundleDependencies": false,
   "contributors": [
     {
       "name": "Fabian Siebold",
       "email": "fabian.siebold@gmail.com"
     }
   ],
+  "dependencies": {
+    "bacstack": "0.0.1-beta.14"
+  },
+  "deprecated": false,
+  "description": "bacnet",
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "gulp": "^3.9.1",
+    "mocha": "^4.1.0"
+  },
   "homepage": "https://github.com/ioBroker/ioBroker.bacnet",
-  "license": "MIT",
   "keywords": [
     "ioBroker",
     "bacnet",
     "Smart Home",
     "home automation"
   ],
+  "license": "MIT",
+  "main": "main.js",
+  "name": "iobroker.bacnet",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ioBroker/ioBroker.bacnet"
+    "url": "git+https://github.com/ioBroker/ioBroker.bacnet.git"
   },
-  "dependencies": {},
-  "devDependencies": {
-    "chai": "^4.1.2",
-    "gulp": "^3.9.1",
-    "mocha": "^4.1.0"
-  },
-  "main": "main.js",
   "scripts": {
     "test": "node node_modules/mocha/bin/mocha --exit"
   },
-  "bugs": {
-    "url": "https://github.com/ioBroker/ioBroker.bacnet/issues"
-  },
-  "readmeFilename": "README.md"
+  "version": "0.0.1"
 }
